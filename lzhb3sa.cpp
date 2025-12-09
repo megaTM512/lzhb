@@ -171,7 +171,7 @@ std::vector<lzhb::PhraseC> lzhb3sa::parseC(const std::string& s,
 double costFunction(uInt len, uInt sumh, uInt height_bound) {
   const double ALPHA = 0.5;
   const double BETA = 0.5;
-  const double GAMMA = 0.8; 
+  const double GAMMA = 0.8;
   return ALPHA * (sumh / std::pow(len, GAMMA)) - BETA * std::log(len);
 }
 
@@ -188,29 +188,35 @@ std::vector<lzhb::PhraseC> lzhb3sa::parseGreedierC(const std::string& s,
     uInt len = lce.second;
 
     uInt src = (uint8_t)s[pos];
-    // Generate candidate lengths from maximum len.
+
+    // Quite bad for low len values... Need another way to limit candidate lengths.
     std::vector<uInt> candidate_lens;
-    int t = len;
+    int lower_bound = std::max(1, (int)len - 5);
+    for (int t = len; t >= lower_bound; --t) candidate_lens.push_back((uInt)t);
+    /* int t = len;
     while (t > 0) {
       candidate_lens.push_back(t);
       t = t / 2;
-    }
-    // No match found, add a new literal.
-    if (len == 0) {
+    } */
+
+    if (len == 0) { // No match found, add a new literal.
       truncateStree(stree, pos, h, height_bound);
       res.push_back(lzhb::PhraseC{.len = 1, .src = 0, .c = s[pos]});
       pos += 1;
-    } else { // Else check all candidate lengths to find the best occurrence.
+    } else {  // Else check all candidate lengths to find the best occurrence.
       uInt best_len = std::numeric_limits<uInt>::max();
       uInt best_src = std::numeric_limits<uInt>::max();
       double best_cost = std::numeric_limits<double>::infinity();
-      // Try all candidate lengths to find the best occurrence minimizing the cost function.
+      // Try all candidate lengths to find the best occurrence minimizing the
+      // cost function.
       for (auto cand_len : candidate_lens) {
-        auto lce_cand = stree.longestPrefix(pos, cand_len); // Every cand_len prefix range must be calculated separately. Very Costly.
+        auto lce_cand = stree.longestPrefix(
+            pos, cand_len);  // Every cand_len prefix range must be calculated
+                             // separately. Very Costly.
         auto occs = stree.getOccs(lce_cand.first, cand_len);
         if (occs.size() == 0) continue;
         for (auto occ : occs) {
-          if(occ + cand_len > pos) continue;  // invalid occurrence
+          if (occ >= pos) continue;  // invalid occurrence
           uInt sumh = h.prod(occ, std::min(occ + cand_len, pos));
           double cost = costFunction(cand_len, sumh, height_bound);
           if (cost < best_cost || (cost <= best_cost && occ < best_src)) {
@@ -220,7 +226,6 @@ std::vector<lzhb::PhraseC> lzhb3sa::parseGreedierC(const std::string& s,
           }
         }
       }
-
       for (uInt i = 0; i < best_len; i++) {
         h.set(pos + i, h.get(best_src + i % (pos - best_src)) + 1);
         truncateStree(stree, pos + i, h, height_bound);
@@ -230,7 +235,8 @@ std::vector<lzhb::PhraseC> lzhb3sa::parseGreedierC(const std::string& s,
       best_len++;
       pos++;
       if (best_len == 1) best_src = 0;
-      res.push_back(lzhb::PhraseC{.len = best_len, .src = best_src, .c = s[pos - 1]});
+      res.push_back(
+          lzhb::PhraseC{.len = best_len, .src = best_src, .c = s[pos - 1]});
     }
     std::cerr << "\r" << pos << "/" << s.size();
   }
