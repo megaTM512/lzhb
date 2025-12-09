@@ -1,5 +1,7 @@
 #include "lzhb3sa.hpp"
 
+#include <math.h>
+
 #include <iostream>
 #include <limits>
 
@@ -41,7 +43,8 @@ static void truncateStree(TruncatedSuffixArray& stree, uInt pos,
   return;
 }
 
-// Only the function head is changed, to accept our segment tree with the sum function. We still prune based on max height.
+// Only the function head is changed, to accept our segment tree with the sum
+// function. We still prune based on max height.
 static void truncateStree(TruncatedSuffixArray& stree, uInt pos,
                           atcoder::segtree<uInt, _sum, _e>& h,
                           uInt height_bound) {
@@ -165,7 +168,13 @@ std::vector<lzhb::PhraseC> lzhb3sa::parseC(const std::string& s,
   return res;
 }
 
-// MODIFIED TO USE THE SUM OF HEIGHTS INSTEAD OF THE MAX HEIGHT
+double costFunction(uInt len, uInt sumh, uInt height_bound) {
+  const double ALPHA = 0.5;
+  const double BETA = 0.5;
+  const double GAMMA = 0.8; 
+  return ALPHA * (sumh / std::pow(len, GAMMA)) - BETA * std::log(len);
+}
+
 std::vector<lzhb::PhraseC> lzhb3sa::parseGreedierC(const std::string& s,
                                                    uInt height_bound) {
   std::vector<lzhb::PhraseC> res;
@@ -179,31 +188,49 @@ std::vector<lzhb::PhraseC> lzhb3sa::parseGreedierC(const std::string& s,
     uInt len = lce.second;
 
     uInt src = (uint8_t)s[pos];
+    // Generate candidate lengths from maximum len.
+    std::vector<uInt> candidate_lens;
+    int t = len;
+    while (t > 0) {
+      candidate_lens.push_back(t);
+      t = t / 2;
+    }
+    // No match found, add a new literal.
     if (len == 0) {
       truncateStree(stree, pos, h, height_bound);
       res.push_back(lzhb::PhraseC{.len = 1, .src = 0, .c = s[pos]});
       pos += 1;
-    } else {
-      src = std::numeric_limits<uInt>::max();
-      auto occs = stree.getOccs(lce.first, lce.second);
-      uInt minsum = std::numeric_limits<uInt>::max();
-      for (auto occ : occs) {
-        uInt sumh = h.prod(occ, std::min(occ + len, pos));
-        if (sumh < minsum || (sumh <= minsum && occ < src)) {
-          src = occ;
-          minsum = sumh;
+    } else { // Else check all candidate lengths to find the best occurrence.
+      uInt best_len = std::numeric_limits<uInt>::max();
+      uInt best_src = std::numeric_limits<uInt>::max();
+      double best_cost = std::numeric_limits<double>::infinity();
+      // Try all candidate lengths to find the best occurrence minimizing the cost function.
+      for (auto cand_len : candidate_lens) {
+        auto lce_cand = stree.longestPrefix(pos, cand_len); // Every cand_len prefix range must be calculated separately. Very Costly.
+        auto occs = stree.getOccs(lce_cand.first, cand_len);
+        if (occs.size() == 0) continue;
+        for (auto occ : occs) {
+          if(occ + cand_len > pos) continue;  // invalid occurrence
+          uInt sumh = h.prod(occ, std::min(occ + cand_len, pos));
+          double cost = costFunction(cand_len, sumh, height_bound);
+          if (cost < best_cost || (cost <= best_cost && occ < best_src)) {
+            best_cost = cost;
+            best_len = cand_len;
+            best_src = occ;
+          }
         }
       }
-      for (uInt i = 0; i < len; i++) {
-        h.set(pos + i, h.get(src + i % (pos - src)) + 1);
+
+      for (uInt i = 0; i < best_len; i++) {
+        h.set(pos + i, h.get(best_src + i % (pos - best_src)) + 1);
         truncateStree(stree, pos + i, h, height_bound);
       }
-      pos += len;
+      pos += best_len;
       truncateStree(stree, pos, h, height_bound);
-      len++;
+      best_len++;
       pos++;
-      if (len == 1) src = 0;
-      res.push_back(lzhb::PhraseC{.len = len, .src = src, .c = s[pos - 1]});
+      if (best_len == 1) best_src = 0;
+      res.push_back(lzhb::PhraseC{.len = best_len, .src = best_src, .c = s[pos - 1]});
     }
     std::cerr << "\r" << pos << "/" << s.size();
   }
