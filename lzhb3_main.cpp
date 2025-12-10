@@ -89,7 +89,7 @@ void runC(const std::string& s, const std::string& fname, uInt height_bound,
     assert(heights.second <= height_bound);
   }
 
-  std::string progname = greedier ? (suffixarray ? "lzhb3SAaz_sum" : "lzhb3az_sum")
+  std::string progname = greedier ? (suffixarray ? "lzhb3SAaz_weight" : "lzhb3az_sum")
                                   : (suffixarray ? "lzhb3SAa_sum" : "lzhb3a_sum");
   // output:
   // "time_stamp,algorithm,file_name,height_bound,file_size,cmp_size,"
