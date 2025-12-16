@@ -1,5 +1,6 @@
 #include "truncatedSuffixArray.hpp"
 
+#include <functional>
 #include <limits>
 
 #include "libsais.h"
@@ -107,6 +108,73 @@ std::pair<std::pair<uInt, uInt>, uInt> TruncatedSuffixArray::longestPrefix(
     if (elm < l + 1) break;
     res.first = rng;
     res.second = ++l;
+  }
+  return res;
+}
+
+LPResult TruncatedSuffixArray::longestPrefixWithCost(
+    std::function<double(uInt, uInt, uInt)> costFunction, uInt pos, uInt len,
+    uInt threshold, const atcoder::segtree<uInt, _sum, _e>& h,
+    uInt height_bound) const {
+  LPResult res;
+  res.len = 0;
+  res.cost = std::numeric_limits<double>::infinity();
+  res.best_occ = pos;
+  double prev_best_cost = std::numeric_limits<double>::infinity();
+
+  uInt rank = rankA[pos];
+  uInt l = 0;
+  auto rng = std::make_pair(0, T.size());
+  res.sa_range = rng;
+
+  while (l < len) { // We try to extend the length l step by step, starting from l = 0
+    // Extend by one character.
+    rng = longestPrefixAux(rank, rng, l);
+    // Get all occurrences of length l+1, adhering to our height bound.
+    auto elm = V.prod(rng.first, rng.second);
+    // If no occurrence can support length l+1, stop.
+    if (elm < l + 1) break;
+    // If we have at least one occurrence, evaluate cost / sum of heights.
+    // For performance reasons, we treat lengths below threshold differently.
+    if (l < threshold) {
+      // Find with lowest sum of heights, same as before
+      uInt best_sumh = 0;
+      uInt best_occ = pos;
+      auto occs = getOccs(rng, l + 1); // Get all _valid_ occurrences of length l+1
+      for (auto occ : occs) {
+        if (occ >= pos) continue;
+        uInt sumh = h.prod(occ, std::min(occ + l + 1, pos));
+        if (best_occ == pos || sumh < best_sumh) {
+          best_sumh = sumh;
+          best_occ = occ;
+        }
+      }
+      res = {rng, l+1, prev_best_cost, best_occ}; // Horray, we found something for l+1!
+      l++;
+      continue;
+    }
+    // After threshold, we want to minimize using our cost function.
+    double best_cost = std::numeric_limits<double>::infinity();
+    uInt best_cost_occ = pos; // Placeholder for "no occurrence found"
+    auto occs = getOccs(rng, l + 1); // Get all _valid_ occurrences of length l+1
+    for (auto occ : occs) {
+      if (occ >= pos) continue; // Future occurrences are invalid
+      uInt sumh = h.prod(occ, std::min(occ + l + 1, pos)); // Part of cost function
+      double cost = costFunction(l, sumh, height_bound);
+      if (best_cost_occ == pos || cost < best_cost) { // Found a better occurrence
+        best_cost = cost;
+        best_cost_occ = occ;
+      }
+    }
+    if (best_cost_occ == pos) { // Placeholder unchanged
+      break;  // no valid occurrence found
+    }
+    if (best_cost > prev_best_cost) { // Oh no, cost got worse!
+      break;
+    }
+    prev_best_cost = best_cost; // Update previous best cost for the next round
+    res = {rng, l+1, best_cost, best_cost_occ}; // Update result with new best for l+1.
+    l++;
   }
   return res;
 }

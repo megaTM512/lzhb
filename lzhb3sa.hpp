@@ -10,6 +10,6 @@ std::vector<lzhb::Phrase> parseGreedier(const std::string& s,
                                         uInt height_bound);
 std::vector<lzhb::PhraseC> parseC(const std::string& s, uInt height_bound);
 std::vector<lzhb::PhraseC> parseGreedierC(const std::string& s,
-                                          uInt height_bound);
+                                          uInt height_bound, uInt threshold);
 }  // namespace lzhb3sa
 #endif  // __LZHB3SA_HPP__

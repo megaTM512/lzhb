@@ -8,10 +8,6 @@
 #include "segtree.hpp"
 #include "truncatedSuffixArray.hpp"
 
-static inline uInt _e() { return 0; }
-static inline uInt _max(uInt a, uInt b) { return std::max(a, b); }
-static inline uInt _sum(uInt a, uInt b) { return a + b; }
-
 // truncate the suffix tree if necessary as when T[pos] becomes terminal
 static void truncateStree(TruncatedSuffixArray& stree, uInt pos,
                           const std::vector<uInt>& h, uInt height_bound) {
@@ -101,7 +97,7 @@ std::vector<lzhb::Phrase> lzhb3sa::parseGreedier(const std::string& s,
     std::pair<std::pair<uInt, uInt>, uInt> lce = stree.longestPrefix(pos);
     uInt len = lce.second;
     uInt src = (uint8_t)s[pos];
-    if (len <= 1) {
+    if (len < 1) {
       len = 1;
       truncateStree(stree, pos, h, height_bound);
     } else {
@@ -169,6 +165,7 @@ std::vector<lzhb::PhraseC> lzhb3sa::parseC(const std::string& s,
 }
 
 double costFunction(uInt len, uInt sumh, uInt height_bound) {
+  (void)height_bound;
   const double ALPHA = 0.5;
   const double BETA = 0.5;
   const double GAMMA = 0.8;
@@ -176,68 +173,33 @@ double costFunction(uInt len, uInt sumh, uInt height_bound) {
 }
 
 std::vector<lzhb::PhraseC> lzhb3sa::parseGreedierC(const std::string& s,
-                                                   uInt height_bound) {
+                                                   uInt height_bound, uInt threshold) {
   std::vector<lzhb::PhraseC> res;
   TruncatedSuffixArray stree(s);
   atcoder::segtree<uInt, _sum, _e> h(s.size());
 
   uInt pos = 0;
   while (pos < s.size()) {
-    std::pair<std::pair<uInt, uInt>, uInt> lce =
-        stree.longestPrefix(pos, s.size() - pos - 1);
-    uInt len = lce.second;
-
-    uInt src = (uint8_t)s[pos];
-
-    // Quite bad for low len values... Need another way to limit candidate lengths.
-    std::vector<uInt> candidate_lens;
-    int lower_bound = std::max(1, (int)len - 5);
-    for (int t = len; t >= lower_bound; --t) candidate_lens.push_back((uInt)t);
-    /* int t = len;
-    while (t > 0) {
-      candidate_lens.push_back(t);
-      t = t / 2;
-    } */
-
-    if (len == 0) { // No match found, add a new literal.
-      truncateStree(stree, pos, h, height_bound);
+    auto lp = stree.longestPrefixWithCost(costFunction, pos, s.size() - pos - 1,
+                                          threshold, h, height_bound);
+    // No match found
+    if (lp.len == 0 || lp.best_occ >= pos) {
       res.push_back(lzhb::PhraseC{.len = 1, .src = 0, .c = s[pos]});
-      pos += 1;
-    } else {  // Else check all candidate lengths to find the best occurrence.
-      uInt best_len = std::numeric_limits<uInt>::max();
-      uInt best_src = std::numeric_limits<uInt>::max();
-      double best_cost = std::numeric_limits<double>::infinity();
-      // Try all candidate lengths to find the best occurrence minimizing the
-      // cost function.
-      for (auto cand_len : candidate_lens) {
-        auto lce_cand = stree.longestPrefix(
-            pos, cand_len);  // Every cand_len prefix range must be calculated
-                             // separately. Very Costly.
-        auto occs = stree.getOccs(lce_cand.first, cand_len);
-        if (occs.size() == 0) continue;
-        for (auto occ : occs) {
-          if (occ >= pos) continue;  // invalid occurrence
-          uInt sumh = h.prod(occ, std::min(occ + cand_len, pos));
-          double cost = costFunction(cand_len, sumh, height_bound);
-          if (cost < best_cost || (cost <= best_cost && occ < best_src)) {
-            best_cost = cost;
-            best_len = cand_len;
-            best_src = occ;
-          }
-        }
-      }
-      for (uInt i = 0; i < best_len; i++) {
-        h.set(pos + i, h.get(best_src + i % (pos - best_src)) + 1);
-        truncateStree(stree, pos + i, h, height_bound);
-      }
-      pos += best_len;
       truncateStree(stree, pos, h, height_bound);
-      best_len++;
-      pos++;
-      if (best_len == 1) best_src = 0;
-      res.push_back(
-          lzhb::PhraseC{.len = best_len, .src = best_src, .c = s[pos - 1]});
+      pos += 1;
+      std::cerr << "\r" << pos << "/" << s.size();
+      continue;
     }
+    // Update h and truncate stree for the found match
+    for (uInt i = 0; i < lp.len; i++) {
+      auto value = h.get(lp.best_occ + i % (pos - lp.best_occ)) + 1;
+      assert(value <= height_bound && "Height bound violated!");
+      h.set(pos + i, value);
+      truncateStree(stree, pos + i, h, height_bound);
+    }
+    res.push_back(lzhb::PhraseC{
+        .len = lp.len + 1, .src = lp.best_occ, .c = s[pos + lp.len]});
+    pos += lp.len + 1;
     std::cerr << "\r" << pos << "/" << s.size();
   }
   std::cerr << std::endl;

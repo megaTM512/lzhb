@@ -61,9 +61,9 @@ void run(const std::string& s, const std::string& fname, size_t height_bound,
 
 void runC(const std::string& s, const std::string& fname, uInt height_bound,
           bool greedier, bool suffixarray, const std::string& outfn,
-          bool verify) {
+          bool verify, uInt threshold = 0) {
   auto ttstart = std::chrono::system_clock::now();
-  auto ans = greedier ? (suffixarray ? lzhb3sa::parseGreedierC(s, height_bound)
+  auto ans = greedier ? (suffixarray ? lzhb3sa::parseGreedierC(s, height_bound, threshold)
                                      : lzhb3::parseGreedierC(s, height_bound))
                       : (suffixarray ? lzhb3sa::parseC(s, height_bound)
                                      : lzhb3::parseC(s, height_bound));
@@ -126,7 +126,9 @@ int main(int argc, char* argv[]) {
       "b,hbound", "maximum allowed height",
       cxxopts::value<size_t>()->default_value("0xffffffffffffffff"))(
       "g,verify", "verify output in various ways",
-      cxxopts::value<bool>()->default_value("false"))("h,help", "Print usage");
+      cxxopts::value<bool>()->default_value("false"))(
+      "t,threshold", "threshold for greedier parsing",
+      cxxopts::value<uInt>()->default_value("10"))("h,help", "Print usage");
   auto res = options.parse(argc, argv);
   if (res.count("help")) {
     std::cout << options.help() << std::endl;
@@ -139,11 +141,12 @@ int main(int argc, char* argv[]) {
   }
   std::string fname = res["file"].as<std::string>();
   std::string ofname = res["outputfile"].as<std::string>();
+  uInt threshold = res["threshold"].as<uInt>();
   if (fname != "") {
     s = lzhb::fileread(fname);
     if (res["appendchar"].as<bool>())
       runC(s, fname, height_bound, res["optimize"].as<bool>(),
-           res["suffixarray"].as<bool>(), ofname, res["verify"].as<bool>());
+           res["suffixarray"].as<bool>(), ofname, res["verify"].as<bool>(), threshold);
     else
       run(s, fname, height_bound, res["optimize"].as<bool>(),
           res["suffixarray"].as<bool>(), ofname, res["verify"].as<bool>());

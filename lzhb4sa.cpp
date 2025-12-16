@@ -6,9 +6,6 @@
 #include "segtree.hpp"
 #include "truncatedSuffixArray.hpp"
 
-static inline uInt _e() { return 0; }
-static inline uInt _max(uInt a, uInt b) { return std::max(a, b); }
-
 // truncate the suffix tree if necessary as when T[pos] becomes terminal
 static void truncateStree(TruncatedSuffixArray& stree, uInt pos,
                           const std::vector<uInt>& h, uInt height_bound) {

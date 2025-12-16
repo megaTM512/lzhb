@@ -4,6 +4,18 @@
 
 #include "lzhb_common.hpp"
 #include "segtree.hpp"
+
+struct LPResult {
+  std::pair<uInt, uInt> sa_range;
+  uInt len;
+  double cost;
+  uInt best_occ;
+};
+
+inline uInt _e() { return 0; }
+inline uInt _max(uInt a, uInt b) { return std::max(a, b); }
+inline uInt _sum(uInt a, uInt b) { return a + b; }
+
 class TruncatedSuffixArray {
   static inline uInt e() { return 0; }
   static inline uInt max(uInt a, uInt b) { return std::max(a, b); }
@@ -37,6 +49,11 @@ class TruncatedSuffixArray {
   // suffix array when it is known that it occurs
   std::pair<std::pair<uInt, uInt>, uInt> longestPrefix(uInt pos,
                                                        uInt len) const;
+
+  LPResult longestPrefixWithCost(
+      std::function<double(uInt, uInt, uInt)> costFunction, uInt pos,
+      uInt maxLen, uInt threshold, const atcoder::segtree<uInt, _sum, _e>& h,
+      uInt height_bound) const;
 };
 
 #endif  //__TRUNCATED_SUFFIX_ARRAY_HPP__
