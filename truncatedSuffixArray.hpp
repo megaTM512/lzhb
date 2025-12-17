@@ -50,10 +50,10 @@ class TruncatedSuffixArray {
   std::pair<std::pair<uInt, uInt>, uInt> longestPrefix(uInt pos,
                                                        uInt len) const;
 
-  LPResult longestPrefixWithCost(
-      std::function<double(uInt, uInt, uInt)> costFunction, uInt pos,
-      uInt maxLen, uInt threshold, const atcoder::segtree<uInt, _sum, _e>& h,
-      uInt height_bound) const;
+LPResult longestPrefixWithCost(
+    std::function<double(uInt, uInt, uInt)> costFunction, uInt pos, uInt len,
+    uInt threshold, const atcoder::segtree<uInt, _sum, _e>& h,
+    uInt height_bound, double epsilon=0.05) const;
 };
 
 #endif  //__TRUNCATED_SUFFIX_ARRAY_HPP__

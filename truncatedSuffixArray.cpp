@@ -115,7 +115,7 @@ std::pair<std::pair<uInt, uInt>, uInt> TruncatedSuffixArray::longestPrefix(
 LPResult TruncatedSuffixArray::longestPrefixWithCost(
     std::function<double(uInt, uInt, uInt)> costFunction, uInt pos, uInt len,
     uInt threshold, const atcoder::segtree<uInt, _sum, _e>& h,
-    uInt height_bound) const {
+    uInt height_bound, double epsilon) const {
   LPResult res;
   res.len = 0;
   res.cost = std::numeric_limits<double>::infinity();
@@ -137,19 +137,8 @@ LPResult TruncatedSuffixArray::longestPrefixWithCost(
     // If we have at least one occurrence, evaluate cost / sum of heights.
     // For performance reasons, we treat lengths below threshold differently.
     if (l < threshold) {
-      // Find with lowest sum of heights, same as before
-      uInt best_sumh = 0;
-      uInt best_occ = pos;
-      auto occs = getOccs(rng, l + 1); // Get all _valid_ occurrences of length l+1
-      for (auto occ : occs) {
-        if (occ >= pos) continue;
-        uInt sumh = h.prod(occ, std::min(occ + l + 1, pos));
-        if (best_occ == pos || sumh < best_sumh) {
-          best_sumh = sumh;
-          best_occ = occ;
-        }
-      }
-      res = {rng, l+1, prev_best_cost, best_occ}; // Horray, we found something for l+1!
+      res.sa_range = rng;
+      res.len = l + 1;
       l++;
       continue;
     }
@@ -169,12 +158,27 @@ LPResult TruncatedSuffixArray::longestPrefixWithCost(
     if (best_cost_occ == pos) { // Placeholder unchanged
       break;  // no valid occurrence found
     }
-    if (best_cost > prev_best_cost) { // Oh no, cost got worse!
+    if (best_cost > prev_best_cost * (1+epsilon)) { // Oh no, cost got worse!
       break;
     }
     prev_best_cost = best_cost; // Update previous best cost for the next round
     res = {rng, l+1, best_cost, best_cost_occ}; // Update result with new best for l+1.
     l++;
+  }
+  if(l < threshold) { // Then we don't have best_occ set yet
+      // Find with lowest sum of heights, same as before
+      uInt best_sumh = 0;
+      uInt best_occ = pos;
+      auto occs = getOccs(rng, l + 1); // Get all _valid_ occurrences of length l+1
+      for (auto occ : occs) {
+        if (occ >= pos) continue;
+        uInt sumh = h.prod(occ, std::min(occ + l + 1, pos));
+        if (best_occ == pos || sumh < best_sumh) {
+          best_sumh = sumh;
+          best_occ = occ;
+        }
+      }
+      res.best_occ = best_occ;
   }
   return res;
 }

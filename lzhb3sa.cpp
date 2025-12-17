@@ -166,10 +166,11 @@ std::vector<lzhb::PhraseC> lzhb3sa::parseC(const std::string& s,
 
 double costFunction(uInt len, uInt sumh, uInt height_bound) {
   (void)height_bound;
-  const double ALPHA = 0.5;
-  const double BETA = 0.5;
-  const double GAMMA = 0.8;
-  return ALPHA * (sumh / std::pow(len, GAMMA)) - BETA * std::log(len);
+  const double ALPHA = 0.7;
+  const double BETA = -0.4;
+  const double GAMMA = 0.1;
+  double cost = ALPHA * (sumh / (len*height_bound)) + BETA * std::log(len) + GAMMA / len;
+  return cost;
 }
 
 std::vector<lzhb::PhraseC> lzhb3sa::parseGreedierC(const std::string& s,
@@ -181,7 +182,7 @@ std::vector<lzhb::PhraseC> lzhb3sa::parseGreedierC(const std::string& s,
   uInt pos = 0;
   while (pos < s.size()) {
     auto lp = stree.longestPrefixWithCost(costFunction, pos, s.size() - pos - 1,
-                                          threshold, h, height_bound);
+                                          threshold, h, height_bound, 0.05);
     // No match found
     if (lp.len == 0 || lp.best_occ >= pos) {
       res.push_back(lzhb::PhraseC{.len = 1, .src = 0, .c = s[pos]});
