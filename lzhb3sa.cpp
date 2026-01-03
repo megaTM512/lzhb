@@ -164,21 +164,28 @@ std::vector<lzhb::PhraseC> lzhb3sa::parseC(const std::string& s,
   return res;
 }
 
-double costFunction(uInt len, uInt sumh, uInt height_bound) {
-  (void)height_bound;
-  const double ALPHA = 0.7;
-  const double BETA = -0.4;
-  const double GAMMA = 0.1;
-  double cost = ALPHA * (sumh / (len*height_bound)) + BETA * std::log(len) + GAMMA / len;
-  return cost;
+
+
+lzhb3sa::CostParams lzhb3sa::defaultCostParams() {
+  return lzhb3sa::CostParams{.ALPHA = 0.5, .BETA = 0.3, .GAMMA = 0.2};
+}
+
+std::function<double(uInt, uInt, uInt)> lzhb3sa::makeCostFunctionWithParams(
+    const lzhb3sa::CostParams& params) {
+  return [params](uInt len, uInt sumh, uInt height_bound) {
+    double cost = params.ALPHA * (sumh / (len * height_bound)) +
+                  params.BETA * std::log(len) +
+                  params.GAMMA / len;
+    return cost;
+  };
 }
 
 std::vector<lzhb::PhraseC> lzhb3sa::parseGreedierC(const std::string& s,
-                                                   uInt height_bound, uInt threshold) {
+                                                   uInt height_bound, uInt threshold, const CostParams& params) {
   std::vector<lzhb::PhraseC> res;
   TruncatedSuffixArray stree(s);
   atcoder::segtree<uInt, _sum, _e> h(s.size());
-
+  auto costFunction = makeCostFunctionWithParams(params);
   uInt pos = 0;
   while (pos < s.size()) {
     auto lp = stree.longestPrefixWithCost(costFunction, pos, s.size() - pos - 1,

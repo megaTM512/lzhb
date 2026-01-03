@@ -14,3 +14,6 @@ target_link_libraries(lzhb4 liblzhb)
 
 add_executable(lzhb_decomp lzhb_decomp_main.cpp)
 target_link_libraries(lzhb_decomp liblzhb)
+
+add_executable(lzhb_paramsearch paramsearch.cpp)
+target_link_libraries(lzhb_paramsearch liblzhb)

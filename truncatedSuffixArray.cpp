@@ -4,6 +4,8 @@
 #include <limits>
 
 #include "libsais.h"
+#include "lzhb3sa.hpp"
+
 TruncatedSuffixArray::TruncatedSuffixArray(const std::string& s)
     : T(s), V(s.size()), rankA(s.size()) {
   SA = new int[s.size()];

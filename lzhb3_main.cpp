@@ -63,7 +63,7 @@ void runC(const std::string& s, const std::string& fname, uInt height_bound,
           bool greedier, bool suffixarray, const std::string& outfn,
           bool verify, uInt threshold = 0) {
   auto ttstart = std::chrono::system_clock::now();
-  auto ans = greedier ? (suffixarray ? lzhb3sa::parseGreedierC(s, height_bound, threshold)
+  auto ans = greedier ? (suffixarray ? lzhb3sa::parseGreedierC(s, height_bound, threshold, lzhb3sa::defaultCostParams())
                                      : lzhb3::parseGreedierC(s, height_bound))
                       : (suffixarray ? lzhb3sa::parseC(s, height_bound)
                                      : lzhb3::parseC(s, height_bound));
