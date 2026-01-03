@@ -45,22 +45,14 @@ double computeAverageHeight(const std::vector<lzhb::PhraseC>& phrases) {
   return avgHeight;
 }
 
-
-double costFunctionWithParams(uInt len, uInt sumh, uInt height_bound, const lzhb3sa::CostParams& p) {
-    double cost = p.ALPHA * (sumh / (len * height_bound)) +
-                  p.BETA * std::log(len) +
-                  p.GAMMA / len;
-    return cost;
-}
-
 // Random sampling framework
 void randomParameterSearch(const std::string& s,
                            uInt height_bound,
                            uInt threshold,
                            int samples) {
     std::mt19937 rng(std::random_device{}());
-    std::uniform_real_distribution<double> alpha_dist(-1.0, 2.0);
-    std::uniform_real_distribution<double> beta_dist(-2.0, 1.0);
+    std::uniform_real_distribution<double> alpha_dist(0.5, 3.0);
+    std::uniform_real_distribution<double> beta_dist(0.05, 0.5);
     std::uniform_real_distribution<double> gamma_dist(-1.0, 1.0);
 
     double best_score = std::numeric_limits<double>::max();
@@ -71,10 +63,6 @@ void randomParameterSearch(const std::string& s,
     for (int i = 0; i < samples; i++) {
         lzhb3sa::CostParams params{alpha_dist(rng), beta_dist(rng), gamma_dist(rng)};
 
-        // Wrap cost function to use these parameters
-        auto costWrapper = [&params](uInt len, uInt sumh, uInt height_bound) {
-            return costFunctionWithParams(len, sumh, height_bound, params);
-        };
         std::cout << "Testing parameters: ALPHA=" << params.ALPHA
                   << ", BETA=" << params.BETA
                   << ", GAMMA=" << params.GAMMA << "\n";

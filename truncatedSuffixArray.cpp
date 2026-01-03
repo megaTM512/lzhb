@@ -167,20 +167,20 @@ LPResult TruncatedSuffixArray::longestPrefixWithCost(
     res = {rng, l+1, best_cost, best_cost_occ}; // Update result with new best for l+1.
     l++;
   }
-  if(l < threshold) { // Then we don't have best_occ set yet
-      // Find with lowest sum of heights, same as before
-      uInt best_sumh = 0;
-      uInt best_occ = pos;
-      auto occs = getOccs(rng, l + 1); // Get all _valid_ occurrences of length l+1
-      for (auto occ : occs) {
-        if (occ >= pos) continue;
-        uInt sumh = h.prod(occ, std::min(occ + l + 1, pos));
-        if (best_occ == pos || sumh < best_sumh) {
-          best_sumh = sumh;
-          best_occ = occ;
-        }
+  if (res.len > 0 && res.best_occ == pos) {
+    uInt best_sumh = std::numeric_limits<uInt>::max();
+    uInt best_occ = pos;
+
+    auto occs = getOccs(res.sa_range, res.len);
+    for (auto occ : occs) {
+      if (occ >= pos) continue;
+      uInt sumh = h.prod(occ, std::min(occ + res.len, pos));
+      if (sumh < best_sumh) {
+        best_sumh = sumh;
+        best_occ = occ;
       }
-      res.best_occ = best_occ;
+    }
+    res.best_occ = best_occ;
   }
   return res;
 }

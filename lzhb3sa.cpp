@@ -173,9 +173,9 @@ lzhb3sa::CostParams lzhb3sa::defaultCostParams() {
 std::function<double(uInt, uInt, uInt)> lzhb3sa::makeCostFunctionWithParams(
     const lzhb3sa::CostParams& params) {
   return [params](uInt len, uInt sumh, uInt height_bound) {
-    double cost = params.ALPHA * (sumh / (len * height_bound)) +
-                  params.BETA * std::log(len) +
-                  params.GAMMA / len;
+    double avg_height = (double)sumh / (double)len;
+    double slack = height_bound - avg_height;
+    double cost = params.ALPHA / (slack + 1.0) + params.BETA / len;
     return cost;
   };
 }
