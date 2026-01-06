@@ -170,6 +170,7 @@ lzhb3sa::CostParams lzhb3sa::defaultCostParams() {
   return lzhb3sa::CostParams{.ALPHA = 0.5, .BETA = 0.3, .GAMMA = 0.2};
 }
 
+/* Slack-based cost function C2 
 std::function<double(uInt, uInt, uInt)> lzhb3sa::makeCostFunctionWithParams(
     const lzhb3sa::CostParams& params) {
   return [params](uInt len, uInt sumh, uInt height_bound) {
@@ -178,10 +179,20 @@ std::function<double(uInt, uInt, uInt)> lzhb3sa::makeCostFunctionWithParams(
     double cost = params.ALPHA / (slack + 1.0) + params.BETA / len;
     return cost;
   };
+} */
+
+// C1
+std::function<double(uInt, uInt, uInt)> lzhb3sa::makeCostFunctionWithParams(
+    const lzhb3sa::CostParams& params) {
+  return [params](uInt len, uInt sumh, uInt height_bound) {
+    double avg_height = (double)sumh / (double)len;
+    double cost = params.ALPHA * (avg_height / height_bound) + params.BETA / std::sqrt(len);
+    return cost;
+  };
 }
 
 std::vector<lzhb::PhraseC> lzhb3sa::parseGreedierC(const std::string& s,
-                                                   uInt height_bound, uInt threshold, const CostParams& params) {
+                                                   uInt height_bound, uInt threshold, const CostParams& params, uInt limit = 0) {
   std::vector<lzhb::PhraseC> res;
   TruncatedSuffixArray stree(s);
   atcoder::segtree<uInt, _sum, _e> h(s.size());

@@ -61,9 +61,9 @@ void run(const std::string& s, const std::string& fname, size_t height_bound,
 
 void runC(const std::string& s, const std::string& fname, uInt height_bound,
           bool greedier, bool suffixarray, const std::string& outfn,
-          bool verify, uInt threshold = 0) {
+          bool verify, uInt threshold = 0, lzhb3sa::CostParams params = lzhb3sa::defaultCostParams()) {
   auto ttstart = std::chrono::system_clock::now();
-  auto ans = greedier ? (suffixarray ? lzhb3sa::parseGreedierC(s, height_bound, threshold, lzhb3sa::defaultCostParams())
+  auto ans = greedier ? (suffixarray ? lzhb3sa::parseGreedierC(s, height_bound, threshold, params)
                                      : lzhb3::parseGreedierC(s, height_bound))
                       : (suffixarray ? lzhb3sa::parseC(s, height_bound)
                                      : lzhb3::parseC(s, height_bound));
@@ -128,7 +128,14 @@ int main(int argc, char* argv[]) {
       "g,verify", "verify output in various ways",
       cxxopts::value<bool>()->default_value("false"))(
       "t,threshold", "threshold for greedier parsing",
-      cxxopts::value<uInt>()->default_value("10"))("h,help", "Print usage");
+      cxxopts::value<uInt>()->default_value("10"))(
+      "A, alpha", "alpha parameter for cost function C2",
+      cxxopts::value<double>()->default_value("0.5"))(
+      "B, beta", "beta parameter for cost function C2",
+      cxxopts::value<double>()->default_value("0.3"))(
+      "G, gamma", "gamma parameter for cost function C2",
+      cxxopts::value<double>()->default_value("0.2")
+      )("h,help", "Print usage");
   auto res = options.parse(argc, argv);
   if (res.count("help")) {
     std::cout << options.help() << std::endl;
@@ -146,7 +153,7 @@ int main(int argc, char* argv[]) {
     s = lzhb::fileread(fname);
     if (res["appendchar"].as<bool>())
       runC(s, fname, height_bound, res["optimize"].as<bool>(),
-           res["suffixarray"].as<bool>(), ofname, res["verify"].as<bool>(), threshold);
+           res["suffixarray"].as<bool>(), ofname, res["verify"].as<bool>(), threshold, lzhb3sa::CostParams{res["alpha"].as<double>(), res["beta"].as<double>(), res["gamma"].as<double>()});
     else
       run(s, fname, height_bound, res["optimize"].as<bool>(),
           res["suffixarray"].as<bool>(), ofname, res["verify"].as<bool>());
