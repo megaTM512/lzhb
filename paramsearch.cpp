@@ -78,7 +78,7 @@ std::vector<ParseResult> randomParameterSearch(const std::string& s,
 
     std::cout << "Testing parameters: ALPHA=" << params.ALPHA
               << ", BETA=" << params.BETA << ", GAMMA=" << params.GAMMA << "\n";
-    auto phrases = lzhb3sa::parseGreedierC(s, height_bound, threshold, params);
+    auto phrases = lzhb3sa::parseGreedierC(s, height_bound, threshold, params, 2);
 
     double avg_height = computeAverageHeight(phrases);
     uint64_t parse_size =

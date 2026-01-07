@@ -164,14 +164,12 @@ std::vector<lzhb::PhraseC> lzhb3sa::parseC(const std::string& s,
   return res;
 }
 
-
-
 lzhb3sa::CostParams lzhb3sa::defaultCostParams() {
   return lzhb3sa::CostParams{.ALPHA = 0.5, .BETA = 0.3, .GAMMA = 0.2};
 }
 
-/* Slack-based cost function C2 
-std::function<double(uInt, uInt, uInt)> lzhb3sa::makeCostFunctionWithParams(
+// Slack-based cost function C2
+std::function<double(uInt, uInt, uInt)> lzhb3sa::makeCostFunctionWithParamsC2(
     const lzhb3sa::CostParams& params) {
   return [params](uInt len, uInt sumh, uInt height_bound) {
     double avg_height = (double)sumh / (double)len;
@@ -179,24 +177,33 @@ std::function<double(uInt, uInt, uInt)> lzhb3sa::makeCostFunctionWithParams(
     double cost = params.ALPHA / (slack + 1.0) + params.BETA / len;
     return cost;
   };
-} */
+}
 
 // C1
-std::function<double(uInt, uInt, uInt)> lzhb3sa::makeCostFunctionWithParams(
+std::function<double(uInt, uInt, uInt)> lzhb3sa::makeCostFunctionWithParamsC1(
     const lzhb3sa::CostParams& params) {
   return [params](uInt len, uInt sumh, uInt height_bound) {
     double avg_height = (double)sumh / (double)len;
-    double cost = params.ALPHA * (avg_height / height_bound) + params.BETA / std::sqrt(len);
+    double cost = params.ALPHA * (avg_height / height_bound) +
+                  params.BETA / std::sqrt(len);
     return cost;
   };
 }
 
 std::vector<lzhb::PhraseC> lzhb3sa::parseGreedierC(const std::string& s,
-                                                   uInt height_bound, uInt threshold, const CostParams& params, uInt limit = 0) {
+                                                   uInt height_bound,
+                                                   uInt threshold,
+                                                   const CostParams& params,
+                                                   uInt costFunctionId) {
   std::vector<lzhb::PhraseC> res;
   TruncatedSuffixArray stree(s);
   atcoder::segtree<uInt, _sum, _e> h(s.size());
-  auto costFunction = makeCostFunctionWithParams(params);
+  std::function<double(uInt, uInt, uInt)> costFunction;
+  if (costFunctionId == 1) {
+    costFunction = makeCostFunctionWithParamsC1(params);
+  } else {
+    costFunction = makeCostFunctionWithParamsC2(params);
+  }
   uInt pos = 0;
   while (pos < s.size()) {
     auto lp = stree.longestPrefixWithCost(costFunction, pos, s.size() - pos - 1,

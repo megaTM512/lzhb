@@ -12,13 +12,15 @@ struct CostParams {
   double GAMMA;
 };
 CostParams defaultCostParams();
-std::function<double(uInt, uInt, uInt)> makeCostFunctionWithParams(
+std::function<double(uInt, uInt, uInt)> makeCostFunctionWithParamsC1(
+    const CostParams& params);
+std::function<double(uInt, uInt, uInt)> makeCostFunctionWithParamsC2(
     const CostParams& params);
 std::vector<lzhb::Phrase> parse(const std::string& s, uInt height_bound);
 std::vector<lzhb::Phrase> parseGreedier(const std::string& s,
                                         uInt height_bound);
 std::vector<lzhb::PhraseC> parseC(const std::string& s, uInt height_bound);
 std::vector<lzhb::PhraseC> parseGreedierC(const std::string& s,
-                                          uInt height_bound, uInt threshold, const CostParams& params);
+                                          uInt height_bound, uInt threshold, const CostParams& params, uInt costFunctionId);
 }  // namespace lzhb3sa
 #endif  // __LZHB3SA_HPP__

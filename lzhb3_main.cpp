@@ -61,13 +61,19 @@ void run(const std::string& s, const std::string& fname, size_t height_bound,
 
 void runC(const std::string& s, const std::string& fname, uInt height_bound,
           bool greedier, bool suffixarray, const std::string& outfn,
-          bool verify, uInt threshold = 0, lzhb3sa::CostParams params = lzhb3sa::defaultCostParams()) {
+          bool verify, uInt threshold = 0, lzhb3sa::CostParams params = lzhb3sa::defaultCostParams(), uInt limit = 0, uInt costFunctionId=1) {
+  if(limit > 0 && s.size() > limit) {
+    // Only use the substring of length 'limit'
+    runC(s.substr(0, limit), fname, height_bound, greedier, suffixarray, outfn, verify, threshold, params, 0, costFunctionId);
+    return;
+  }
   auto ttstart = std::chrono::system_clock::now();
-  auto ans = greedier ? (suffixarray ? lzhb3sa::parseGreedierC(s, height_bound, threshold, params)
+  auto ans = greedier ? (suffixarray ? lzhb3sa::parseGreedierC(s, height_bound, threshold, params, costFunctionId)
                                      : lzhb3::parseGreedierC(s, height_bound))
                       : (suffixarray ? lzhb3sa::parseC(s, height_bound)
                                      : lzhb3::parseC(s, height_bound));
-  auto ttend = std::chrono::system_clock::now();
+
+                                     auto ttend = std::chrono::system_clock::now();
   auto dur = ttend - ttstart;
   double msec =
       std::chrono::duration_cast<std::chrono::milliseconds>(dur).count();
@@ -135,7 +141,11 @@ int main(int argc, char* argv[]) {
       cxxopts::value<double>()->default_value("0.3"))(
       "G, gamma", "gamma parameter for cost function C2",
       cxxopts::value<double>()->default_value("0.2")
-      )("h,help", "Print usage");
+      )("L,limit", "limit input size for greedierC SA version",
+      cxxopts::value<uInt>()->default_value("0"))(
+      "C,costFunctionId", "cost function ID for greedierC SA version",
+      cxxopts::value<uInt>()->default_value("1"))(
+      "h,help", "Print usage");
   auto res = options.parse(argc, argv);
   if (res.count("help")) {
     std::cout << options.help() << std::endl;
@@ -149,11 +159,12 @@ int main(int argc, char* argv[]) {
   std::string fname = res["file"].as<std::string>();
   std::string ofname = res["outputfile"].as<std::string>();
   uInt threshold = res["threshold"].as<uInt>();
+  uInt limit = res["limit"].as<uInt>();
   if (fname != "") {
     s = lzhb::fileread(fname);
     if (res["appendchar"].as<bool>())
       runC(s, fname, height_bound, res["optimize"].as<bool>(),
-           res["suffixarray"].as<bool>(), ofname, res["verify"].as<bool>(), threshold, lzhb3sa::CostParams{res["alpha"].as<double>(), res["beta"].as<double>(), res["gamma"].as<double>()});
+           res["suffixarray"].as<bool>(), ofname, res["verify"].as<bool>(), threshold, lzhb3sa::CostParams{res["alpha"].as<double>(), res["beta"].as<double>(), res["gamma"].as<double>()}, limit, res["costFunctionId"].as<uInt>());
     else
       run(s, fname, height_bound, res["optimize"].as<bool>(),
           res["suffixarray"].as<bool>(), ofname, res["verify"].as<bool>());
